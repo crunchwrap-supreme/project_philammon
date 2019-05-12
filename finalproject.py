@@ -4,10 +4,84 @@ from mido import MidiTrack
 from mido import Message
 from mido import MetaMessage
 import random
+import copy
+
+from dataclasses import dataclass, field
+from typing import Any
+
+# Used to be able to re-prioritize items on the queue
+@dataclass(order=True)
+class PrioritizedItem:
+    priority: float
+    count: int=field(compare=False)
+    item: Any=field(compare=False)
+
 
 shortPhrases = {}
 longPhrases = {}
 phrases = {}
+
+
+# unfinished!!!
+def genetic(popSize, size, key_sig, time_sig):
+    population = []
+    for i in range(popSize):
+        population.append(randomTrack(size, key_sig, time_sig))
+    pop = copy.deepcopy(population)
+    for i in range():
+        rndA = random.randrange(len(population))
+        rndB = random.randrange(len(population))
+        if population[rndA] != population[rndB]:
+            A, B = crossover(population[rndA], population[rndB], size, time_sig)
+            pop.append(A)
+            pop.append(B)
+    return population
+
+
+# user input!!! saving files for replay?
+# rewards -- rate on a scale 1-10 (for both enjoyment and fitting a certain theme?)
+# lower ratings with negative rewards?
+# unfinished
+def fitnessCheck(population):
+    return 0
+
+
+def crossover(parentA, parentB, bars, time_sig):
+    crossPoint = random.randrange(bars)
+    childA = []
+    childB = []
+
+    ticksSoFar = 0
+
+    # Child A
+    for i in parentA:
+        time = i.time
+        ticksSoFar += int(time)
+        childA.append(i)
+        if ticksSoFar == (192 * int(time_sig.split()[0]) * crossPoint):
+            break
+    for i in parentB:
+        time = i.time
+        ticksSoFar += int(time)
+        childA.append(i)
+
+    # Child B
+    for i in parentB:
+        time = i.time
+        ticksSoFar += int(time)
+        childB.append(i)
+        if ticksSoFar == (192 * int(time_sig.split()[0]) * crossPoint):
+            break
+    for i in parentA:
+        time = i.time
+        ticksSoFar += int(time)
+        childB.append(i)
+
+    return childA, childB
+
+
+def mutation(parent):
+    return 0
 
 
 # msgs list of note messages (non-meta)
@@ -122,8 +196,8 @@ def main():
     # test = toFile(longPhrases[('C', '4 / 4')][rndLong], 'C', '4 / 4', 375000)
     # for msg in test.play():
     #     print(msg)
-    testRND = randomTrack(16, 'C', '4 / 4')
-    test = toFile(testRND, 'C', '4 / 4', 375000)
+    testRND = randomTrack(16, 'E', '4 / 4')
+    test = toFile(testRND, 'E', '4 / 4', 800000)
     for msg in test.play():
         print(msg)
 
