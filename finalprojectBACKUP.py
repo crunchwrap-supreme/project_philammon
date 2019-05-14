@@ -8,18 +8,9 @@ import random
 import copy
 from queue import PriorityQueue
 
-# TODO - fix time_sig - list of important time information? can't just be a metamessage but need more than just '4/4'
-
 
 # from dataclasses import dataclass, field
-# from typing import Any
-#
-# # Used to be able to re-prioritize items on the queue
-# @dataclass(order=True)
-# class PrioritizedItem:
-#     priority: float
-#     count: int=field(compare=False)
-#     item: Any=field(compare=False)
+
 
 
 shortPhrases = {}
@@ -28,6 +19,7 @@ phrases = {}
 
 
 # unfinished!!!
+# do we want this recursive or do we while loop wherever we call this
 def genetic(popSize, size, key_sig, time_sig, tempo):
     population = []
     output = mido.open_output('IAC Driver Bus 1')
@@ -48,9 +40,8 @@ def genetic(popSize, size, key_sig, time_sig, tempo):
                 pop.append(A)
                 pop.append(B)
             rndC = random.randrange(len(population))
-            C = mutation(population[rndC], time_sig)
-            if population[rndC] != C:
-                pop.append(C)
+            C = mutation(population[rndC], time_sig, key_sig)
+            pop.append(C)
         popFit = fitnessCheck(pop, key_sig, time_sig, tempo, popSize)
         population = popFit
         repeat = input("Do you want to repeat this process with more songs? Y/N: ")
@@ -63,7 +54,7 @@ def genetic(popSize, size, key_sig, time_sig, tempo):
     return popFit
 
 
-# user input!!!
+# user input!!! saving files for replay?
 # rewards -- rate on a scale 1-10
 def fitnessCheck(population, key_sig, time_sig, tempo, popSize):
     output = mido.open_output('IAC Driver Bus 1')
@@ -87,7 +78,7 @@ def fitnessCheck(population, key_sig, time_sig, tempo, popSize):
                 mid.save(name)
             elif j == "q":
                 done = True
-                superDone = True    # to be able to break out of the for loop after the while loop
+                superDone = True
             elif j.isdigit() and (int(j) < 11 and int(j) > 0):
                 done = True
                 rating = int(j)
@@ -115,14 +106,14 @@ def crossover(parentA, parentB, bars, time_sig):
 
     ticksSoFar = 0
     ticks2 = 0
-    tickCheck = time_sig[2] * time_sig[3] * time_sig[0] * bars
+    tickCheck = 192 * int(time_sig.split()[0]) * bars
 
     # Child A
     for i in parentA:
         time = i.time
         ticksSoFar += int(time)
         childA.append(i)
-        if ticksSoFar >= (time_sig[2] * time_sig[3] * time_sig[0] * crossPoint):
+        if ticksSoFar >= (192 * int(time_sig.split()[0]) * crossPoint):
             break
     for i in parentB:
         time = i.time
@@ -146,7 +137,7 @@ def crossover(parentA, parentB, bars, time_sig):
         time = i.time
         ticksSoFar += int(time)
         childB.append(i)
-        if ticksSoFar >= (time_sig[2] * time_sig[3] * time_sig[0] * crossPoint):
+        if ticksSoFar >= (192 * int(time_sig.split()[0]) * crossPoint):
             break
     for i in parentA:
         time = i.time
@@ -169,7 +160,7 @@ def crossover(parentA, parentB, bars, time_sig):
 # what kind of mutation?
 # --switch around phrases implemented
 # potentially also change notes, volume, etc
-def mutation(parent, time_sig):
+def mutation(parent, time_sig, key_sig):
     child = []
     # rnd = random.randrange(1, 3)
     # if rnd == 1:    # phrase swap
@@ -180,20 +171,17 @@ def mutation(parent, time_sig):
         time = i.time
         ticksSoFar += int(time)
         phrase.append(i)
-        if ticksSoFar % (time_sig[2] * time_sig[3] * time_sig[0]) == 0:
+        if ticksSoFar % (192 * int(time_sig.split()[0])) == 0:
             temp.append(phrase)
             phrase = []
-    if len(temp) != 0:
-        rndPhrase1 = random.randrange(len(temp))
-        rndPhrase2 = random.randrange(len(temp))
-        t = temp[rndPhrase1]
-        temp[rndPhrase1] = temp[rndPhrase2]
-        temp[rndPhrase2] = t
-        for i in temp:
-            child.extend(i)
-        return child
-    else:
-        return parent
+    rndPhrase1 = random.randrange(len(temp))
+    rndPhrase2 = random.randrange(len(temp))
+    t = temp[rndPhrase1]
+    temp[rndPhrase1] = temp[rndPhrase2]
+    temp[rndPhrase2] = t
+    for i in temp:
+        child.extend(i)
+    return child
 
 
 # msgs list of note messages (non-meta)
@@ -203,8 +191,10 @@ def toFile(msgs, key_sig, time_sig, tempo, saveYN):
     mid.tracks.append(track)
 
     track.append(MetaMessage('key_signature', key=key_sig, time=0))
-    track.append(MetaMessage('time_signature', numerator=time_sig[0], denominator=time_sig[1],
-                             clocks_per_click=time_sig[2], notated_32nd_notes_per_beat=time_sig[3]))
+    t = time_sig.split()
+    num = int(t[0])
+    den = int(t[2])
+    track.append(MetaMessage('time_signature', numerator=num, denominator=den, clocks_per_click=24, notated_32nd_notes_per_beat=8, time=0))
     track.append(MetaMessage('set_tempo', tempo=tempo, time=0))
     track.append(Message('program_change', program=12, time=0))
     for i in msgs:
@@ -253,7 +243,7 @@ def main():
             # print("FileName: ", filename)
             mid = MidiFile("MidiDataset/"+filename)
             key_sig = ''
-            time_sig = []
+            time_sig = ''
             numTicksBerBeat = 0
             shortPhraseList = []
             longPhraseList = []
@@ -261,10 +251,7 @@ def main():
             ticksSoFar = 0
             numerator = 0
             denominator = 0
-            shortCount = 0
-            longCount = 0
             for i, track in enumerate(mid.tracks):
-                ticksSoFar = 0
                 # print('Track {}: {}'.format(i, track.name))
                 for msg in track:
                     # outport.send(msg)
@@ -277,10 +264,9 @@ def main():
                         # print("denominator:", denominator)
                         clocks_per_click = msg.clocks_per_click
                         notated_32nd_notes_per_beat = msg.notated_32nd_notes_per_beat
-                        # UGH MetaMessage not hashable - time_sig list of important information instead?
-                        time_sig = [numerator, denominator, clocks_per_click, notated_32nd_notes_per_beat]
+                        time_sig = str(numerator) + " / " + str(denominator)
                         numTicksBerBeat = clocks_per_click * notated_32nd_notes_per_beat
-                    if key_sig != '' and len(time_sig) != 0:
+                    if key_sig != '' and time_sig != '':
                         keyTimePair = (key_sig, time_sig)
                         # print("KeyTimePair: ", keyTimePair)
                         if keyTimePair not in shortPhrases:
@@ -292,24 +278,20 @@ def main():
                         if msg.type == "note_on" or msg.type == "note_off":
                             time = msg.time
                             ticksSoFar += int(time)
-                            shortCount += int(time)
-                            longCount += int(time)
                             shortPhraseList.append(msg)
                             longPhraseList.append(msg)
-                            if longCount != 0 and longCount >= (numTicksBerBeat * int(numerator) * 4): # long phrase
+                            if ticksSoFar % (192 * int(numerator) * 4) == 0: # long phrase
+                                ticksSoFar = 0
                                 # print("Long Phrase:", longPhraseList)
                                 # print()
-                                if len(longPhraseList) != 0:
-                                    longPhrases[keyTimePair].append(longPhraseList)
+                                longPhrases[keyTimePair].append(longPhraseList)
                                 longPhraseList.clear()
-                                longCount = 0
-                            if shortCount != 0 and shortCount >= (numTicksBerBeat * int(numerator)):  # short phrases
+                            # if ticksSoFar % (numTicksBerBeat * int(numerator)) == 0: # short phrases
+                            if ticksSoFar % (192 * int(numerator)) == 0:  # short phrases
                                 # print("Short Phrase:", shortPhraseList)
                                 # print()
-                                if len(shortPhraseList) != 0:
-                                    shortPhrases[keyTimePair].append(shortPhraseList)
+                                shortPhrases[keyTimePair].append(shortPhraseList)
                                 shortPhraseList.clear()
-                                shortCount = 0
             # print("Short Phrases Dict: ", len(shortPhrases))
             # print("Long Phrases Dict: ", len(longPhrases))
     # rndLong = random.randrange(len(longPhrases[('C', '4 / 4')]))
