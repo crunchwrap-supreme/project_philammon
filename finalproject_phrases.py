@@ -5,6 +5,7 @@ from mido import MidiTrack
 from mido import Message
 from mido import MetaMessage
 import random
+import time
 import copy
 from queue import PriorityQueue
 
@@ -90,8 +91,12 @@ def fitnessCheck(population, key_sig, time_sig, tempo, popSize):
     tiebreaker = 0
     for i in population:
         mid = toFile(i, key_sig, time_sig, tempo, False)
+        startTime = time.process_time()
         for msg in mid.play():
             output.send(msg)
+        endTime = time.process_time()
+        print("Actual Time: ", endTime - startTime)
+        print()
         # user input - do you want to play this again?
         done = False
         rating = 0
@@ -120,36 +125,33 @@ def fitnessCheck(population, key_sig, time_sig, tempo, popSize):
     if popSize > q.qsize():
         popSize = q.qsize()
     for i in range(popSize):
-        item = q.get()
+        item = q.get()[2]
         pop.append(item)
     return pop
 
 
 def ticksPerBeatConversion(phrase, desired_TPB):
-    change = 1
-    if (desired_TPB == phrase.ticks_per_beat):
-        change = 1
-    else:
-        change = (desired_TPB - phrase.ticks_per_beat) / phrase.ticks_per_beat
-    print("CHANGE: ", change)
-    print()
     # going through each message and changing ticks to fit desired TPB
     # Must be an INTEGER
 
+    #print("Original TPB:", phrase.ticks_per_beat)
+    #print("Desired TPB:", desired_TPB)
+    #print()
+
     list = []
     for i in phrase.msgs:
-        print("Original Message: ", i)
+       # print("Original Message: ", i)
         if i.type == "note_on":
-            newTime = int(round((change * int(i.time))))
+            newTime = int(round(desired_TPB * (int(i.time) / phrase.ticks_per_beat)))
             newmsg = Message("note_on", note=i.note, velocity=i.velocity, time=newTime)
-            print("New Message: ", newmsg)
+        #    print("New Message: ", newmsg)
             list.append(newmsg)
         elif i.type == "note_off":
-            newTime = int(round((change * int(i.time))))
+            newTime = int(round(desired_TPB * (int(i.time) / phrase.ticks_per_beat)))
             newmsg = Message("note_off", note=i.note, velocity=i.velocity, time=newTime)
-            print("New Message: ", newmsg)
+         #   print("New Message: ", newmsg)
             list.append(newmsg)
-        print()
+        #print()
     newPhrase = Phrase(list, desired_TPB)
     return newPhrase
 
@@ -402,7 +404,11 @@ def main():
      #   output.send(msg)
       #  print(msg)
 
-    pop = genetic(3, 16, 'C', '4 4 24 8', 700000, 480)
+    tempo = 500000
+    numBars = 12
+    beatsPerMeasure = 4
+    print("Expected Time: ", (tempo / 1000000) * beatsPerMeasure * numBars)
+    pop = genetic(3, numBars, 'C', '4 4 24 8', tempo, 480)
 
 
 
