@@ -214,7 +214,7 @@ def toFile(msgs, key_sig, time_sig, tempo, saveYN):
     for i in msgs:
         track.append(i)
 
-    print(track)
+    #print(track)
     if saveYN:
         mid.save('new_song.mid')
     return mid
@@ -252,10 +252,13 @@ def main():
 
     directory = input("Please enter a path to the desired directory: ")
 
+    testkey = ''
+    testtime = ''
+
     for filename in os.listdir(directory):
         if filename.endswith(".midi") or filename.endswith(".mid"):
             # print("FileName: ", filename)
-            mid = MidiFile("MidiDataset/"+filename)
+            mid = MidiFile("MidiDataset/lavender-town-music.midi")
             key_sig = ''
             time_sig = ''
             shortPhraseList = []
@@ -302,35 +305,38 @@ def main():
                             shortCount += time
                             longCount += time
                             newmsg = Message("note_on", note=msg.note, velocity=msg.velocity, time=time)
-                            duration = time
                             shortPhraseList.append(newmsg)
                             longPhraseList.append(newmsg)
-                            if longCount != 0 and longCount >= (mid.ticks_per_beat * int(numerator) * 4): # long phrase
+                            if ticksSoFar != 0 and ticksSoFar >= (mid.ticks_per_beat * int(numerator) * 4): # long phrase
                                 # print("Long Phrase:", longPhraseList)
                                 # print()
                                 if len(longPhraseList) != 0:
                                     longPhrases[keyTimePair].append(longPhraseList)
-                                longPhraseList.clear()
-                                longCount = 0
-                            if shortCount != 0 and shortCount >= (mid.ticks_per_beat * int(numerator)):  # short phrases
+                                    longPhraseList.clear()
+                                ticksSoFar = 0
+                            if ticksSoFar != 0 and ticksSoFar >= (mid.ticks_per_beat * int(numerator)):  # short phrases
                                 # print("Short Phrase:", shortPhraseList)
                                 # print()
                                 if len(shortPhraseList) != 0:
                                     shortPhrases[keyTimePair].append(shortPhraseList)
-                                shortPhraseList.clear()
-                                shortCount = 0
+                                    shortPhraseList.clear()
+            break
+        else:
+            continue
 
             # print("Short Phrases Dict: ", len(shortPhrases))
             # print("Long Phrases Dict: ", len(longPhrases))
-    rndLong = random.randrange(len(longPhrases[('C', '4 4 24 8')]))
-    test = toFile(longPhrases[('C', '4 4 24 8')][rndLong], 'C', '4 4 24 8', 600000, True)
-    # output = mido.open_output('IAC Driver Bus 1')
-    print()
-    print("PLAY TEST STARTS HERE")
-    print()
-    for msg in test.play():
-        print(msg)
-        # output.send(msg)
+    # rndLong = random.randrange(len(longPhrases[('C', '4 4 24 8')]))
+    print(longPhrases)
+    for key in longPhrases:
+        test = toFile(longPhrases[key], key[0], key[1], 600000, False)
+        output = mido.open_output('IAC Driver Bus 1')
+        print()
+        print("PLAY TEST STARTS HERE")
+        print()
+        for msg in test.play():
+            print(msg)
+            output.send(msg)
 
     # testRND = randomTrack(16, 'E', '4 / 4')
     # test = toFile(testRND, 'E', '4 / 4', 800000, True)
