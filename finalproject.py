@@ -115,14 +115,15 @@ def crossover(parentA, parentB, bars, time_sig):
 
     ticksSoFar = 0
     ticks2 = 0
-    tickCheck = time_sig[2] * time_sig[3] * time_sig[0] * bars
+    timesig = time_sig.split()
+    tickCheck = int(timesig[2]) * int(timesig[3]) * int(timesig[0]) * bars
 
     # Child A
     for i in parentA:
         time = i.time
         ticksSoFar += int(time)
         childA.append(i)
-        if ticksSoFar >= (time_sig[2] * time_sig[3] * time_sig[0] * crossPoint):
+        if ticksSoFar >= (int(timesig[2]) * int(timesig[3]) * int(timesig[0]) * crossPoint):
             break
     for i in parentB:
         time = i.time
@@ -146,7 +147,7 @@ def crossover(parentA, parentB, bars, time_sig):
         time = i.time
         ticksSoFar += int(time)
         childB.append(i)
-        if ticksSoFar >= (time_sig[2] * time_sig[3] * time_sig[0] * crossPoint):
+        if ticksSoFar >= (int(timesig[2]) * int(timesig[3]) * int(timesig[0]) * crossPoint):
             break
     for i in parentA:
         time = i.time
@@ -176,11 +177,13 @@ def mutation(parent, time_sig):
     temp = []
     ticksSoFar = 0
     phrase = []
+    timesig = time_sig.split()
+
     for i in parent:
         time = i.time
         ticksSoFar += int(time)
         phrase.append(i)
-        if ticksSoFar % (time_sig[2] * time_sig[3] * time_sig[0]) == 0:
+        if ticksSoFar % (int(timesig[2]) * int(timesig[3]) * int(timesig[0])) == 0:
             temp.append(phrase)
             phrase = []
     if len(temp) != 0:
@@ -201,16 +204,17 @@ def toFile(msgs, key_sig, time_sig, tempo, saveYN):
     mid = MidiFile()
     track = MidiTrack()
     mid.tracks.append(track)
+    timesig = time_sig.split()
 
     track.append(MetaMessage('key_signature', key=key_sig, time=0))
-    track.append(MetaMessage('time_signature', numerator=time_sig[0], denominator=time_sig[1],
-                             clocks_per_click=time_sig[2], notated_32nd_notes_per_beat=time_sig[3]))
+    track.append(MetaMessage('time_signature', numerator=int(timesig[0]), denominator=int(timesig[1]),
+                             clocks_per_click=int(timesig[2]), notated_32nd_notes_per_beat=int(timesig[3]), time=0))
     track.append(MetaMessage('set_tempo', tempo=tempo, time=0))
     track.append(Message('program_change', program=12, time=0))
     for i in msgs:
         track.append(i)
 
-    # print(track)
+    print(track)
     if saveYN:
         mid.save('new_song.mid')
     return mid
@@ -249,25 +253,28 @@ def main():
     directory = input("Please enter a path to the desired directory: ")
 
     for filename in os.listdir(directory):
-       if filename.endswith(".midi") or filename.endswith(".mid"):
+        if filename.endswith(".midi") or filename.endswith(".mid"):
             # print("FileName: ", filename)
             mid = MidiFile("MidiDataset/"+filename)
             key_sig = ''
-            time_sig = []
-            numTicksBerBeat = 0
+            time_sig = ''
             shortPhraseList = []
             longPhraseList = []
-            messageList = []
             ticksSoFar = 0
             numerator = 0
             denominator = 0
             shortCount = 0
             longCount = 0
+            tempo = 0
+            duration = 0
             for i, track in enumerate(mid.tracks):
                 ticksSoFar = 0
                 # print('Track {}: {}'.format(i, track.name))
                 for msg in track:
                     # outport.send(msg)
+                    # print(msg)
+                    if msg.is_meta and msg.type == "set_tempo":
+                        tempo = msg.tempo
                     if msg.is_meta and msg.type == 'key_signature':
                         key_sig = msg.key
                     if msg.is_meta and msg.type == 'time_signature':
@@ -278,8 +285,7 @@ def main():
                         clocks_per_click = msg.clocks_per_click
                         notated_32nd_notes_per_beat = msg.notated_32nd_notes_per_beat
                         # UGH MetaMessage not hashable - time_sig list of important information instead?
-                        time_sig = [numerator, denominator, clocks_per_click, notated_32nd_notes_per_beat]
-                        numTicksBerBeat = clocks_per_click * notated_32nd_notes_per_beat
+                        time_sig = str(numerator)+" "+str(denominator)+" "+str(clocks_per_click)+" "+str(notated_32nd_notes_per_beat)
                     if key_sig != '' and len(time_sig) != 0:
                         keyTimePair = (key_sig, time_sig)
                         # print("KeyTimePair: ", keyTimePair)
@@ -287,40 +293,50 @@ def main():
                             shortPhrases[keyTimePair] = []
                         if keyTimePair not in longPhrases:
                             longPhrases[keyTimePair] = []
-                    if msg.is_meta == False and numerator != 0 and numTicksBerBeat != 0:
+                    if msg.is_meta == False and numerator != 0 and tempo !=0:
                         # generating phrases
-                        if msg.type == "note_on" or msg.type == "note_off":
-                            time = msg.time
-                            ticksSoFar += int(time)
-                            shortCount += int(time)
-                            longCount += int(time)
-                            shortPhraseList.append(msg)
-                            longPhraseList.append(msg)
-                            if longCount != 0 and longCount >= (numTicksBerBeat * int(numerator) * 4): # long phrase
+                        if msg.type == "note_on" or msg.type == "note_off" and tempo != 0 and mid.ticks_per_beat != 0:
+                            # time = mido.second2tick(int(msg.time), mid.ticks_per_beat, tempo)
+                            time = int(msg.time)
+                            ticksSoFar += time
+                            shortCount += time
+                            longCount += time
+                            newmsg = Message("note_on", note=msg.note, velocity=msg.velocity, time=time)
+                            duration = time
+                            shortPhraseList.append(newmsg)
+                            longPhraseList.append(newmsg)
+                            if longCount != 0 and longCount >= (mid.ticks_per_beat * int(numerator) * 4): # long phrase
                                 # print("Long Phrase:", longPhraseList)
                                 # print()
                                 if len(longPhraseList) != 0:
                                     longPhrases[keyTimePair].append(longPhraseList)
                                 longPhraseList.clear()
                                 longCount = 0
-                            if shortCount != 0 and shortCount >= (numTicksBerBeat * int(numerator)):  # short phrases
+                            if shortCount != 0 and shortCount >= (mid.ticks_per_beat * int(numerator)):  # short phrases
                                 # print("Short Phrase:", shortPhraseList)
                                 # print()
                                 if len(shortPhraseList) != 0:
                                     shortPhrases[keyTimePair].append(shortPhraseList)
                                 shortPhraseList.clear()
                                 shortCount = 0
+
             # print("Short Phrases Dict: ", len(shortPhrases))
             # print("Long Phrases Dict: ", len(longPhrases))
-    # rndLong = random.randrange(len(longPhrases[('C', '4 / 4')]))
-    # test = toFile(longPhrases[('C', '4 / 4')][rndLong], 'C', '4 / 4', 375000)
-    # for msg in test.play():
-    #     print(msg)
+    rndLong = random.randrange(len(longPhrases[('C', '4 4 24 8')]))
+    test = toFile(longPhrases[('C', '4 4 24 8')][rndLong], 'C', '4 4 24 8', 600000, True)
+    # output = mido.open_output('IAC Driver Bus 1')
+    print()
+    print("PLAY TEST STARTS HERE")
+    print()
+    for msg in test.play():
+        print(msg)
+        # output.send(msg)
+
     # testRND = randomTrack(16, 'E', '4 / 4')
     # test = toFile(testRND, 'E', '4 / 4', 800000, True)
     # for msg in test.play():
     #     print(msg)
-    pop = genetic(3, 16, 'C', '4 / 4', 375000)
+    # pop = genetic(3, 16, 'C', '4 / 4', 375000)
 
 
 
