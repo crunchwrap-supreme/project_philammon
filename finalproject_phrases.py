@@ -303,6 +303,76 @@ def randomTrack(size, key_sig, time_sig, desired):
     p = Phrase(song, desired)
     return p
 
+def q_learning(cap_size, key_sig, time_sig, tempo, desiredTPB, alpha, gamma):
+    phrases = [] # combines list of phrases together
+    phrases.extend(shortPhrases[(key_sig, time_sig)])
+    phrases.extend(longPhrases[(key_sig, time_sig)])
+
+    initialStates = len(shortPhrases[(key_sig, time_sig)]) + len(longPhrases[(key_sig, time_sig)])
+    initialQ_Table = [[0 for x in range (initialStates)] for y in range(initialStates)]
+    output = mido.open_output('IAC Driver Bus 1')
+
+    dict = []
+    maxRating = 0
+    maxPhrase = None
+    maxLocation = 0
+    for col in range(initialStates):
+        # save the highest rated phrase to be selected as the starting point
+        phrase = phrases[col]
+        rating = 0
+        for msg in phrase.msgs:
+            output.send(msg)
+        rating = int(input("Please rate this phrase from 1-10 (worst to best): "))
+        if maxRating < rating:
+            maxRating = rating
+            maxPhrase = phrases[col]
+            maxLocation = col
+        for row in range(initialStates):
+            initialQ_Table[row][col] = rating
+
+    totalBars = 0
+
+    for row in range(initialStates):
+        for col in range(initialStates):
+            p1 = ticksPerBeatConversion(phrases[row], desiredTPB)
+            p2 = ticksPerBeatConversion(phrases[col], desiredTPB)
+
+            combined_msgs = []
+            combined_msgs.extend(p1)
+            combined_msgs.extend(p2)
+
+            p = Phrase(combined_msgs, desiredTPB)
+            dict[(p1, p2)] = p
+
+            rating = 0
+            mid = toFile(p, key_sig, time_sig, tempo, False)
+            for msg in mid.play():
+                output.send(msg)
+            while not done:
+                j = input(
+                    "Please rate this phrase combination between 1-10, type 'play' to play the song again")
+                if j == "play":
+                    for msg in mid.play():
+                        output.send(msg)
+                elif j.isdigit() and (int(j) < 11 and int(j) > 0):
+                    done = True
+                    rating = int(j)
+                else:
+                    continue
+
+            newQVal = ((1 - alpha) * initialQ_Table[row][col]) + (alpha * rating)
+
+            initialQ_Table[row][col] = newQVal
+
+    maxQSA = copy.deepcopy(initialQ_Table) # save this to use as permanent future utility estimate
+
+
+
+
+    #while (totalBars < cap_size):
+
+
+
 
 def main():
     # key sig-time pairs
@@ -389,6 +459,12 @@ def main():
                                     shortPhraseList = []
 
 
+    for p in shortPhrases:
+        if not shortPhrases[p]:
+            del shortPhrases[p]
+    for p in longPhrases:
+        if not longPhrases[p]:
+            del longPhrases[p]
 
             # print("Short Phrases Dict: ", len(shortPhrases))
             # print("Long Phrases Dict: ", len(longPhrases))

@@ -2,16 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="8d224c67-9411-44e9-8889-93b4d754ab87" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/4thRANDtest.mid" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/FIRSTOUTPUTSUCCESS.mid" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/SECONDOUTPUTSUCCESS.mid" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/WE_FIXED_IT.mid" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/aidan.mid" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/finalproject_phrases.py" beforeDir="false" afterPath="$PROJECT_DIR$/finalproject_phrases.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/firstRANDtest.mid" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genetic1.mid" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/secondRANDtest.mid" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/thirdRANDtest.mid" beforeDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -24,8 +15,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/finalproject_phrases.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="951">
-              <caret line="127" column="25" lean-forward="true" selection-start-line="127" selection-start-column="25" selection-end-line="127" selection-end-column="25" />
+            <state relative-caret-position="615">
+              <caret line="371" column="5" selection-start-line="371" selection-start-column="5" selection-end-line="371" selection-end-column="5" />
               <folding>
                 <element signature="e#0#9#0" expanded="true" />
               </folding>
@@ -55,11 +46,9 @@
       </list>
     </option>
   </component>
-  <component name="ProjectFrameBounds">
-    <option name="x" value="203" />
-    <option name="y" value="67" />
-    <option name="width" value="1606" />
-    <option name="height" value="904" />
+  <component name="ProjectFrameBounds" fullScreen="true">
+    <option name="width" value="1920" />
+    <option name="height" value="1080" />
   </component>
   <component name="ProjectView">
     <navigator proportions="" version="1">
@@ -138,10 +127,11 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="203" y="67" width="1606" height="904" extended-state="0" />
+    <frame x="0" y="0" width="1920" height="1080" extended-state="0" />
+    <editor active="true" />
     <layout>
       <window_info id="Favorites" side_tool="true" />
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.24984227" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.2085308" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info anchor="bottom" id="Version Control" />
       <window_info anchor="bottom" id="Python Console" />
@@ -149,8 +139,8 @@
       <window_info anchor="bottom" id="Event Log" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
-      <window_info active="true" anchor="bottom" id="Run" order="2" visible="true" weight="0.32881773" />
-      <window_info anchor="bottom" id="Debug" order="3" weight="0.39901477" />
+      <window_info anchor="bottom" id="Run" order="2" weight="0.26435643" />
+      <window_info active="true" anchor="bottom" id="Debug" order="3" visible="true" weight="0.02970297" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="6" />
@@ -164,11 +154,6 @@
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/finalproject_phrases.py</url>
-          <line>400</line>
-          <option name="timeStamp" value="1" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/finalproject_phrases.py</url>
           <line>162</line>
           <option name="timeStamp" value="2" />
         </line-breakpoint>
@@ -177,14 +162,33 @@
           <line>75</line>
           <option name="timeStamp" value="3" />
         </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/finalproject_phrases.py</url>
+          <line>466</line>
+          <option name="timeStamp" value="7" />
+        </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
   </component>
   <component name="editorHistoryManager">
+    <entry file="file://$APPLICATION_HOME_DIR$/helpers/pydev/_pydev_imps/_pydev_execfile.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="374">
+          <caret line="17" selection-start-line="17" selection-end-line="17" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///Library/Frameworks/Python.framework/Versions/3.7/lib/python3.7/codecs.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="208">
+          <caret line="321" selection-start-line="321" selection-end-line="321" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/finalproject_phrases.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="951">
-          <caret line="127" column="25" lean-forward="true" selection-start-line="127" selection-start-column="25" selection-end-line="127" selection-end-column="25" />
+        <state relative-caret-position="615">
+          <caret line="371" column="5" selection-start-line="371" selection-start-column="5" selection-end-line="371" selection-end-column="5" />
           <folding>
             <element signature="e#0#9#0" expanded="true" />
           </folding>
