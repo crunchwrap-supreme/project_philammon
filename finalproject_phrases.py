@@ -51,11 +51,11 @@ phrases = {}
 
 
 # unfinished!!!
-def genetic(popSize, size, key_sig, time_sig, tempo):
+def genetic(popSize, size, key_sig, time_sig, tempo, desired):
     population = []
     output = mido.open_output('IAC Driver Bus 1')
     for i in range(popSize):
-        population.append(randomTrack(size, key_sig, time_sig))
+        population.append(randomTrack(size, key_sig, time_sig, desired))
     done = False
     while not done:
         pop = copy.deepcopy(population)
@@ -63,7 +63,7 @@ def genetic(popSize, size, key_sig, time_sig, tempo):
             rndA = random.randrange(len(population))
             rndB = random.randrange(len(population))
             if population[rndA] != population[rndB]:
-                A, B = crossover(population[rndA], population[rndB], size, time_sig)
+                A, B = crossover(population[rndA], population[rndB], size, time_sig, desired)
                 pop.append(A)
                 pop.append(B)
             rndC = random.randrange(len(population))
@@ -125,10 +125,39 @@ def fitnessCheck(population, key_sig, time_sig, tempo, popSize):
     return pop
 
 
+def ticksPerBeatConversion(phrase, desired_TPB):
+    change = 1
+    if (desired_TPB == phrase.ticks_per_beat):
+        change = 1
+    else:
+        change = (desired_TPB - phrase.ticks_per_beat) / phrase.ticks_per_beat
+    print("CHANGE: ", change)
+    print()
+    # going through each message and changing ticks to fit desired TPB
+    # Must be an INTEGER
+
+    list = []
+    for i in phrase.msgs:
+        print("Original Message: ", i)
+        if i.type == "note_on":
+            newTime = int(round((change * int(i.time))))
+            newmsg = Message("note_on", note=i.note, velocity=i.velocity, time=newTime)
+            print("New Message: ", newmsg)
+            list.append(newmsg)
+        elif i.type == "note_off":
+            newTime = int(round((change * int(i.time))))
+            newmsg = Message("note_off", note=i.note, velocity=i.velocity, time=newTime)
+            print("New Message: ", newmsg)
+            list.append(newmsg)
+        print()
+    newPhrase = Phrase(list, desired_TPB)
+    return newPhrase
+
+
 # THERE IS A PROBLEM HERE
 # timing with tickssofar is BROKE and we're getting very short and very long pieces instead of uniform length
-def crossover(parentA, parentB, bars, time_sig):
-    ticksPerBeat = 96
+def crossover(A, B, bars, time_sig, desired):
+    ticksPerBeat = desired
     crossPoint = random.randrange(bars) + 1
     childA = []
     childB = []
@@ -138,14 +167,17 @@ def crossover(parentA, parentB, bars, time_sig):
     timesig = time_sig.split()
     tickCheck = ticksPerBeat * int(timesig[0]) * bars
 
+    parentA = ticksPerBeatConversion(A, desired)
+    parentB = ticksPerBeatConversion(B, desired)
+
     # Child A
-    for i in parentA:
+    for i in parentA.msgs:
         time = i.time
         ticksSoFar += int(time)
         childA.append(i)
         if ticksSoFar >= (ticksPerBeat * int(timesig[0]) * crossPoint):
             break
-    for i in parentB:
+    for i in parentB.msgs:
         time = i.time
         ticks2 += int(time)
         if ticks2 >= tickCheck:
@@ -163,13 +195,13 @@ def crossover(parentA, parentB, bars, time_sig):
     ticksSoFar = 0
     ticks2 = 0
     # Child B
-    for i in parentB:
+    for i in parentB.msgs:
         time = i.time
         ticksSoFar += int(time)
         childB.append(i)
         if ticksSoFar >= (ticksPerBeat * int(timesig[0]) * crossPoint):
             break
-    for i in parentA:
+    for i in parentA.msgs:
         time = i.time
         ticks2 += int(time)
         if ticks2 >= tickCheck:
@@ -184,7 +216,7 @@ def crossover(parentA, parentB, bars, time_sig):
     if ticks != tickCheck:
         print("ChildB is not the right length. Goal: "+ str(tickCheck) +" Actual Length: "+str(ticks))
 
-    return childA, childB
+    return Phrase(childA, desired), Phrase(childB, desired)
 
 
 # what kind of mutation?
@@ -199,11 +231,11 @@ def mutation(parent, time_sig):
     phrase = []
     timesig = time_sig.split()
 
-    for i in parent:
+    for i in parent.msgs:
         time = i.time
         ticksSoFar += int(time)
         phrase.append(i)
-        if ticksSoFar % (int(timesig[2]) * int(timesig[3]) * int(timesig[0])) == 0:
+        if ticksSoFar == parent.ticks_per_beat * int(timesig[0]):
             temp.append(phrase)
             phrase = []
     if len(temp) != 0:
@@ -214,14 +246,16 @@ def mutation(parent, time_sig):
         temp[rndPhrase2] = t
         for i in temp:
             child.extend(i)
-        return child
+        p = Phrase(child, parent.ticks_per_beat)
+        return p
     else:
         return parent
 
 
 # msgs list of note messages (non-meta)
-def toFile(msgs, key_sig, time_sig, tempo, saveYN):
+def toFile(phrase, key_sig, time_sig, tempo, saveYN):
     mid = MidiFile()
+    mid.ticks_per_beat = phrase.ticks_per_beat
     track = MidiTrack()
     mid.tracks.append(track)
     timesig = time_sig.split()
@@ -231,7 +265,7 @@ def toFile(msgs, key_sig, time_sig, tempo, saveYN):
                              clocks_per_click=int(timesig[2]), notated_32nd_notes_per_beat=int(timesig[3]), time=0))
     track.append(MetaMessage('set_tempo', tempo=tempo, time=0))
     track.append(Message('program_change', program=12, time=0))
-    for i in msgs:
+    for i in phrase.msgs:
         track.append(i)
 
     #print(track)
@@ -241,7 +275,7 @@ def toFile(msgs, key_sig, time_sig, tempo, saveYN):
 
 
 # size is how many bars long a piece should be
-def randomTrack(size, key_sig, time_sig):
+def randomTrack(size, key_sig, time_sig, desired):
     global shortPhrases
     global longPhrases
     global phrases
@@ -251,17 +285,21 @@ def randomTrack(size, key_sig, time_sig):
         rndShort = random.randrange(len(shortPhrases[(key_sig, time_sig)]))
         rndLong = random.randrange(len(longPhrases[(key_sig, time_sig)]))
         if size - bars < 4:
-            song.extend(shortPhrases[(key_sig, time_sig)][rndShort])
+            p = ticksPerBeatConversion(shortPhrases[(key_sig, time_sig)][rndShort], desired)
+            song.extend(p.msgs)
             bars += 1
         else:
             rnd = random.randint(1, 2)
             if rnd == 1:
-                song.extend(shortPhrases[(key_sig, time_sig)][rndShort])
+                p = ticksPerBeatConversion(shortPhrases[(key_sig, time_sig)][rndShort], desired)
+                song.extend(p.msgs)
                 bars += 1
             else:
-                song.extend(longPhrases[(key_sig, time_sig)][rndLong])
+                p = ticksPerBeatConversion(longPhrases[(key_sig, time_sig)][rndLong], desired)
+                song.extend(p.msgs)
                 bars += 4
-    return song
+    p = Phrase(song, desired)
+    return p
 
 
 def main():
@@ -277,7 +315,7 @@ def main():
     print("LOADING...")
     for filename in os.listdir(directory):
         if filename.endswith(".midi") or filename.endswith(".mid"):
-            print("FileName: ", filename)
+            #print("FileName: ", filename)
             mid = MidiFile(directory +"/"+filename)
             key_sig = ''
             time_sig = ''
@@ -344,7 +382,7 @@ def main():
                                 shortCount = 0
                                 if len(shortPhraseList) != 0:
                                     p = Phrase(shortPhraseList, mid.ticks_per_beat)
-                                    print("Short Phrase Length: ", p.length())
+                                    # print("Short Phrase Length: ", p.length())
                                     shortPhrases[keyTimePair].append(p)
                                     shortPhraseList = []
 
@@ -352,17 +390,19 @@ def main():
 
             # print("Short Phrases Dict: ", len(shortPhrases))
             # print("Long Phrases Dict: ", len(longPhrases))
-    # rndLong = random.randrange(len(longPhrases[('C', '4 4 24 8')]))
+    #rndLong = random.randrange(len(longPhrases[('C', '4 4 24 8')]))
    # print(longPhrases)
     #print(ugh)
     #print(longPhrases['G', ('4 4 24 8')])
 
-    #testRND = randomTrack(16, 'E', '4 4 24 8')
-    #test = toFile(testRND, 'E', '4 4 24 8', 1000000, True)
+    output = mido.open_output('IAC Driver Bus 1')
+    #testRND = randomTrack(16, 'E', '4 4 24 8', 480)
+    #test = toFile(testRND, 'E', '4 4 24 8', 700000, True)
     #for msg in test.play():
-     #   print(msg)
-    #pop = genetic(3, 16, 'C', '4 4 24 8', 700000)
+     #   output.send(msg)
+      #  print(msg)
 
+    pop = genetic(3, 16, 'C', '4 4 24 8', 700000, 480)
 
 
 
