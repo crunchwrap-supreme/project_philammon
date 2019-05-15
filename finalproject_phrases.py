@@ -9,18 +9,6 @@ import time
 import copy
 from queue import PriorityQueue
 
-# TODO - fix time_sig - list of important time information? can't just be a metamessage but need more than just '4/4'
-
-
-# from dataclasses import dataclass, field
-# from typing import Any
-#
-# # Used to be able to re-prioritize items on the queue
-# @dataclass(order=True)
-# class PrioritizedItem:
-#     priority: float
-#     count: int=field(compare=False)
-#     item: Any=field(compare=False)
 
 class Phrase:
     def __init__(self, MSGS, ticks):
@@ -45,11 +33,10 @@ class Phrase:
         return len
 
 
-
+# global dictionaries for both lengths of phrases (1 bar/measure and 4 bars/measures)
 shortPhrases = {}
 longPhrases = {}
-phrases = {}
-
+moods = {}
 
 # unfinished!!!
 def genetic(popSize, size, key_sig, time_sig, tempo, desired):
@@ -102,7 +89,7 @@ def fitnessCheck(population, key_sig, time_sig, tempo, popSize):
         rating = 0
         superDone = False
         while not done:
-            j = input("Please rate this song between 1-10, type 'play' to play the song again,  type 'save' to save the song file, or type 'q' to quit: ")
+            j = input("Please rate this song between 1-10, type 'play' to play the song again, type 'save' to save the song file, or type 'q' to quit: ")
             if j == "play":
                 for msg in mid.play():
                     output.send(msg)
@@ -134,9 +121,9 @@ def ticksPerBeatConversion(phrase, desired_TPB):
     # going through each message and changing ticks to fit desired TPB
     # Must be an INTEGER
 
-    #print("Original TPB:", phrase.ticks_per_beat)
-    #print("Desired TPB:", desired_TPB)
-    #print()
+    # print("Original TPB:", phrase.ticks_per_beat)
+    # print("Desired TPB:", desired_TPB)
+    # print()
 
     list = []
     for i in phrase.msgs:
@@ -187,12 +174,12 @@ def crossover(A, B, bars, time_sig, desired):
         if ticks2 >= ticksSoFar:
             childA.append(i)
 
-    ticks = 0
-    for i in childA:
-        time = i.time
-        ticks += time
-    if ticks != tickCheck:
-        print("ChildA is not the right length. Goal: "+ str(tickCheck) +" Actual Length: "+str(ticks))
+    # ticks = 0
+    # for i in childA:
+    #     time = i.time
+    #     ticks += time
+    # if ticks != tickCheck:
+    #     print("ChildA is not the right length. Goal: "+ str(tickCheck) +" Actual Length: "+str(ticks))
 
     ticksSoFar = 0
     ticks2 = 0
@@ -211,19 +198,19 @@ def crossover(A, B, bars, time_sig, desired):
         if ticks2 >= ticksSoFar:
             childB.append(i)
 
-    ticks = 0
-    for i in childB:
-        time = i.time
-        ticks += time
-    if ticks != tickCheck:
-        print("ChildB is not the right length. Goal: "+ str(tickCheck) +" Actual Length: "+str(ticks))
+    # ticks = 0
+    # for i in childB:
+    #     time = i.time
+    #     ticks += time
+    # if ticks != tickCheck:
+    #     print("ChildB is not the right length. Goal: "+ str(tickCheck) +" Actual Length: "+str(ticks))
 
     return Phrase(childA, desired), Phrase(childB, desired)
 
 
 # what kind of mutation?
 # --switch around phrases implemented
-# potentially also change notes, volume, etc
+# potentially also change notes, volume, etc (for future work??)
 def mutation(parent, time_sig):
     child = []
     # rnd = random.randrange(1, 3)
@@ -254,7 +241,6 @@ def mutation(parent, time_sig):
         return parent
 
 
-# msgs list of note messages (non-meta)
 def toFile(phrase, key_sig, time_sig, tempo, saveYN):
     mid = MidiFile()
     mid.ticks_per_beat = phrase.ticks_per_beat
@@ -270,7 +256,7 @@ def toFile(phrase, key_sig, time_sig, tempo, saveYN):
     for i in phrase.msgs:
         track.append(i)
 
-    #print(track)
+    # print(track)
     if saveYN:
         mid.save('new_song.mid')
     return mid
@@ -303,16 +289,27 @@ def randomTrack(size, key_sig, time_sig, desired):
     p = Phrase(song, desired)
     return p
 
+
 def q_learning(cap_size, key_sig, time_sig, tempo, desiredTPB, alpha, gamma):
+    global shortPhrases
+    global longPhrases
+
     phrases = [] # combines list of phrases together
     phrases.extend(shortPhrases[(key_sig, time_sig)])
     phrases.extend(longPhrases[(key_sig, time_sig)])
 
-    initialStates = len(shortPhrases[(key_sig, time_sig)]) + len(longPhrases[(key_sig, time_sig)])
+    # version below for testing (way smaller dataset for tester/user convenience....)
+    # for i in range(2):
+    #     rndShort = random.randrange(len(shortPhrases[(key_sig, time_sig)]))
+    #     rndLong = random.randrange(len(longPhrases[(key_sig, time_sig)]))
+    #     phrases.append(shortPhrases[(key_sig, time_sig)][rndShort])
+    #     phrases.append(longPhrases[(key_sig, time_sig)][rndLong])
+
+    initialStates = len(phrases)
     initialQ_Table = [[0 for x in range (initialStates)] for y in range(initialStates)]
     output = mido.open_output('IAC Driver Bus 1')
 
-    dict = []
+    dict = {}
     maxRating = 0
     maxPhrase = None
     maxLocation = 0
@@ -320,8 +317,9 @@ def q_learning(cap_size, key_sig, time_sig, tempo, desiredTPB, alpha, gamma):
         # save the highest rated phrase to be selected as the starting point
         phrase = phrases[col]
         rating = 0
-        for msg in phrase.msgs:
-            output.send(msg)
+        # for msg in phrase.msgs:
+        #     output.send(msg)
+        print("Phrase length: ", phrase.length())
         rating = int(input("Please rate this phrase from 1-10 (worst to best): "))
         if maxRating < rating:
             maxRating = rating
@@ -332,25 +330,30 @@ def q_learning(cap_size, key_sig, time_sig, tempo, desiredTPB, alpha, gamma):
 
     totalBars = 0
 
+    print()
+    print("Single phrases DONE")
+    print()
+
     for row in range(initialStates):
         for col in range(initialStates):
             p1 = ticksPerBeatConversion(phrases[row], desiredTPB)
             p2 = ticksPerBeatConversion(phrases[col], desiredTPB)
 
             combined_msgs = []
-            combined_msgs.extend(p1)
-            combined_msgs.extend(p2)
+            combined_msgs.extend(p1.msgs)
+            combined_msgs.extend(p2.msgs)
 
             p = Phrase(combined_msgs, desiredTPB)
             dict[(p1, p2)] = p
 
             rating = 0
             mid = toFile(p, key_sig, time_sig, tempo, False)
-            for msg in mid.play():
-                output.send(msg)
+            # for msg in mid.play():
+            #     output.send(msg)
+            done = False
             while not done:
                 j = input(
-                    "Please rate this phrase combination between 1-10, type 'play' to play the song again")
+                    "Please rate this phrase combination between 1-10, type 'play' to play the song again: ")
                 if j == "play":
                     for msg in mid.play():
                         output.send(msg)
@@ -365,13 +368,106 @@ def q_learning(cap_size, key_sig, time_sig, tempo, desiredTPB, alpha, gamma):
             initialQ_Table[row][col] = newQVal
 
     maxQSA = copy.deepcopy(initialQ_Table) # save this to use as permanent future utility estimate
+    # use as permanent future utility est. based on these values being for specific phrase combos which are what the
+    # Q table keeps track of
+
+    songSoFar = maxPhrase
+    lastPhraseLocation = maxLocation
+    # update total bars based on length of songSoFar
+    totalBars = songSoFar.length() / int(time_sig[0])
+    print("cap:", cap_size, "bars so far:", totalBars)
+
+    while totalBars < cap_size:
+        # lastPhraseLocation starts as col, use to find row for corresponding phrase
+        # iterate through row to find the col (and corresponding phrase) with highest Q value --will be next used phrase
+        max = 0
+        loc = 0
+        for i in range(len(phrases)):
+            if initialQ_Table[lastPhraseLocation][i] > max:
+                max = initialQ_Table[lastPhraseLocation][i]
+                loc = i
+
+        # add phrase corresponding to loc to songSoFar
+        msgs = songSoFar.msgs
+        msgs.extend(ticksPerBeatConversion(phrases[loc], desiredTPB).msgs)
+        temp = Phrase(msgs, desiredTPB)
+        songSoFar = temp
+
+        # play songSoFar for user, ask for rating of addition to song, update Q table accordingly
+        song = toFile(songSoFar, key_sig, time_sig, tempo, False)
+        rating = 0
+        for msg in song.play():
+            output.send(msg)
+        done = False
+        while not done:
+            j = input("Please rate the updated song between 1-10, or type 'play' to play the song again: ")
+            if j == "play":
+                for msg in song.play():
+                    output.send(msg)
+            elif j.isdigit() and (int(j) < 11 and int(j) > 0):
+                done = True
+                rating = int(j)
+            else:
+                continue
+
+        old = initialQ_Table[lastPhraseLocation][loc]
+        initialQ_Table[lastPhraseLocation][loc] = ((1 - alpha) * old) + (alpha * (rating + (gamma * maxQSA[lastPhraseLocation][loc])))
+
+        # update lastPhraseLocation
+        lastPhraseLocation = loc
+
+        # use songSoFar length (number of beats) + key sig numerator (beats per measure) to calculate totalBars
+        totalBars = songSoFar.length() / int(time_sig[0])
+        print("cap:", cap_size, "bars so far:", totalBars)
+
+        # ???--profit? (unsure what else needs to happen here) maybe nothing
+
+    # okay so we're out of the loop, got a full song, what now (just return the song)
+    return songSoFar
 
 
-
-
-    #while (totalBars < cap_size):
-
-
+# theoretically goes through all the keys in the phrase dictionaries and asks the user to-----
+# (either assign them a mood OR provides a list of moods and asks which one fits best)
+# populates moods (scenario?) dictionary (mood -> list of (key_sig, time_sig, tempo?)((will likely assume standard TPB))
+# potential use - provide the user the list of keys, ask which mood they want to listen to while testing algorithms
+# then pick a (key_sig, time_sig, tempo) from the given mood (key) and pass that in to the algorithms
+def assign_mood():
+    global shortPhrases
+    global longPhrases
+    global moods
+    # standard tempos -- 60, 90, 100, 115, 120, 130, 135, 140, 145, 160, 170, 180, 190, 200 (in beats per min)
+    # actually store as microseconds per beat
+    std_tempos = []
+    superDone = False
+    while not superDone:
+        for key in shortPhrases:
+            for tempo in std_tempos:
+                # using 480 ticks per beat as a standard (for now?)
+                r = randomTrack(12, key[0], key[1], 480)
+                output = mido.open_output('IAC Driver Bus 1')
+                mid = toFile(r, key[0], [1], tempo, False)
+                for msg in mid.play():
+                    output.send(msg)
+                done = False
+                while not done:
+                    j = input(
+                        "Please enter a word describing the mood of this song, type 'play' to play the song again, "
+                        "type 'save' to save the song file, or type 'q' to quit: ")
+                    if j == "play":
+                        for msg in mid.play():
+                            output.send(msg)
+                    elif j == "save":
+                        name = input("Please name the song: ")
+                        mid.save(name)
+                    elif j == "q":
+                        done = True
+                        superDone = True
+                    elif j == '':
+                        continue
+                    else:
+                        j = j.upper()
+                        moods[j] = moods[j].append((key[0], key[1], tempo))
+        superDone = True
 
 
 def main():
@@ -458,33 +554,36 @@ def main():
                                     shortPhrases[keyTimePair].append(p)
                                     shortPhraseList = []
 
-
-    for p in shortPhrases:
-        if not shortPhrases[p]:
-            del shortPhrases[p]
-    for p in longPhrases:
-        if not longPhrases[p]:
-            del longPhrases[p]
+    # figure out a way to actually get rid of keys with empty list values because this doesn't work
+    # for p in shortPhrases:
+    #     if not shortPhrases[p]:
+    #         del shortPhrases[p]
+    # for p in longPhrases:
+    #     if not longPhrases[p]:
+    #         del longPhrases[p]
 
             # print("Short Phrases Dict: ", len(shortPhrases))
             # print("Long Phrases Dict: ", len(longPhrases))
-    #rndLong = random.randrange(len(longPhrases[('C', '4 4 24 8')]))
-   # print(longPhrases)
-    #print(ugh)
-    #print(longPhrases['G', ('4 4 24 8')])
+    # rndLong = random.randrange(len(longPhrases[('C', '4 4 24 8')]))
+    # print(longPhrases)
+    # print(ugh)
+    # print(longPhrases['G', ('4 4 24 8')])
 
     output = mido.open_output('IAC Driver Bus 1')
-    #testRND = randomTrack(16, 'E', '4 4 24 8', 480)
-    #test = toFile(testRND, 'E', '4 4 24 8', 700000, True)
-    #for msg in test.play():
-     #   output.send(msg)
-      #  print(msg)
+    # testRND = randomTrack(16, 'E', '4 4 24 8', 480)
+    # test = toFile(testRND, 'E', '4 4 24 8', 700000, True)
+    # for msg in test.play():
+        # output.send(msg)
+        # print(msg)
 
-    tempo = 500000
-    numBars = 12
-    beatsPerMeasure = 4
-    print("Expected Time: ", (tempo / 1000000) * beatsPerMeasure * numBars)
-    pop = genetic(3, numBars, 'C', '4 4 24 8', tempo, 480)
+    # tempo = 500000
+    # numBars = 12
+    # beatsPerMeasure = 4
+    # print("Expected Time: ", (tempo / 1000000) * beatsPerMeasure * numBars)
+    # pop = genetic(3, numBars, 'C', '4 4 24 8', tempo, 480)
+
+    song = q_learning(16, 'E', '4 4 24 8', 500000, 480, 0.5, 0.2)
+
 
 
 
