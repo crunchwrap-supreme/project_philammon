@@ -14,6 +14,7 @@
 ``` shell 
   python finalproject_phrases.py
   ```
+  and use the directory 'MidiDataset' when prompted
 * play any saved .midi files using mido-play in the terminal via 
 ``` shell 
   mido-play song_name.mid
