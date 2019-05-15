@@ -10,4 +10,11 @@
 
 * Install the Python MIDI library here: (https://mido.readthedocs.io/en/latest/installing.html)
 * Open the "IAC Driver" MIDI Output port in "Audio MIDI Setup"
-* play any saved .midi files using mido-play in the terminal 
+* Run program using 
+``` shell 
+  python finalproject_phrases.py
+  ```
+* play any saved .midi files using mido-play in the terminal via 
+``` shell 
+  mido-play song_name.mid
+  ```
