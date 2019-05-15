@@ -8,7 +8,12 @@
 
 ## Installation and Testing Instructions
 
-* Install the Python MIDI library here: (https://mido.readthedocs.io/en/latest/installing.html)
+* To install the Mido library: 
+``` shell 
+  pip install mido 
+  ```
+  
+  (for more information on the Mido library, visit https://mido.readthedocs.io/en/latest/index.html 
 * Open the "IAC Driver" MIDI Output port in "Audio MIDI Setup"
 * Run program using 
 ``` shell 
