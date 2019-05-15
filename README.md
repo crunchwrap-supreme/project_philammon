@@ -6,6 +6,8 @@
 
 
 
-## Installation Instructions
+## Installation and Testing Instructions
 
-Install the Python MIDI library here https://mido.readthedocs.io/en/latest/installing.html
+* Install the Python MIDI library here: (https://mido.readthedocs.io/en/latest/installing.html)
+* Open the "IAC Driver" MIDI Output port in "Audio MIDI Setup"
+* play any saved .midi files using mido-play in the terminal 
